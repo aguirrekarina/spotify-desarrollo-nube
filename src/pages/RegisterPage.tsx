@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import {
-    Container,
-    Paper,
-    TextField,
-    Button,
-    Typography,
-    Box,
-    Link,
-    Alert
-} from '@mui/material';
+import { Container, Paper, TextField, Button, Typography, Box, Link, Alert, Divider, Stack } from '@mui/material';
+import { Google } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const RegisterPage: React.FC = () => {
@@ -18,7 +10,8 @@ const RegisterPage: React.FC = () => {
     const [displayName, setDisplayName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { register } = useAuth();
+    const [googleLoading, setGoogleLoading] = useState(false);
+    const { register, loginWithGoogle } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -30,9 +23,23 @@ const RegisterPage: React.FC = () => {
             await register(email, password, displayName);
             navigate('/');
         } catch (err) {
-            setError('Error al registrar usuario');
+            setError('Error al registrar usuario: ' + (err as Error).message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGoogleRegister = async () => {
+        setError('');
+        setGoogleLoading(true);
+
+        try {
+            await loginWithGoogle();
+            navigate('/');
+        } catch (err) {
+            setError('Error al registrarse con Google: ' + (err as Error).message);
+        } finally {
+            setGoogleLoading(false);
         }
     };
 
@@ -46,46 +53,73 @@ const RegisterPage: React.FC = () => {
 
                     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-                    <form onSubmit={handleSubmit}>
-                        <TextField
-                            fullWidth
-                            label="Nombre"
-                            value={displayName}
-                            onChange={(e) => setDisplayName(e.target.value)}
-                            margin="normal"
-                            required
-                        />
-                        <TextField
-                            fullWidth
-                            label="Email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            margin="normal"
-                            required
-                        />
-                        <TextField
-                            fullWidth
-                            label="Contraseña"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            margin="normal"
-                            required
-                        />
+                    <Stack spacing={3}>
                         <Button
-                            type="submit"
                             fullWidth
-                            variant="contained"
+                            variant="outlined"
                             size="large"
-                            disabled={loading}
-                            sx={{ mt: 3, mb: 2 }}
+                            startIcon={<Google />}
+                            onClick={handleGoogleRegister}
+                            disabled={googleLoading || loading}
+                            sx={{
+                                py: 1.5,
+                                borderColor: '#55db37',
+                                color: '#55db37',
+                                '&:hover': {
+                                    borderColor: '#26a61c',
+                                    backgroundColor: '#fef7f7'
+                                }
+                            }}
                         >
-                            {loading ? 'Registrando...' : 'Registrarse'}
+                            {googleLoading ? 'Registrando con Google...' : 'Registrarse con Google'}
                         </Button>
-                    </form>
+                        <Divider>
+                            <Typography variant="body2" color="text.secondary">
+                                o
+                            </Typography>
+                        </Divider>
 
-                    <Box textAlign="center">
+                        <form onSubmit={handleSubmit}>
+                            <TextField
+                                fullWidth
+                                label="Nombre"
+                                value={displayName}
+                                onChange={(e) => setDisplayName(e.target.value)}
+                                margin="normal"
+                                required
+                            />
+                            <TextField
+                                fullWidth
+                                label="Email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                margin="normal"
+                                required
+                            />
+                            <TextField
+                                fullWidth
+                                label="Contraseña"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                margin="normal"
+                                required
+                            />
+                            <Button
+                                type="submit"
+                                fullWidth
+                                variant="contained"
+                                size="large"
+                                disabled={loading || googleLoading}
+                                sx={{ mt: 3, mb: 2 }}
+                            >
+                                {loading ? 'Registrando...' : 'Registrarse'}
+                            </Button>
+                        </form>
+                    </Stack>
+
+                    <Box textAlign="center" sx={{ mt: 2 }}>
                         <Link component={RouterLink} to="/login">
                             ¿Ya tienes cuenta? Inicia sesión
                         </Link>

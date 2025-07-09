@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
+    signInWithPopup,
+    GoogleAuthProvider,
     signOut,
     onAuthStateChanged
 } from 'firebase/auth';
@@ -28,10 +30,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 try {
-                    const userData = await userRepository.getById(firebaseUser.uid);
-                    if (userData) {
-                        setUser(userData);
+                    let userData = await userRepository.getById(firebaseUser.uid);
+
+                    if (!userData) {
+                        const newUserData: User = {
+                            uid: firebaseUser.uid,
+                            email: firebaseUser.email || '',
+                            displayName: firebaseUser.displayName || 'Usuario',
+                            role: 'user',
+                            createdAt: new Date()
+                        };
+                        await userRepository.createUser(firebaseUser.uid, newUserData);
+                        userData = newUserData;
                     }
+
+                    setUser(userData);
                 } catch (error) {
                     console.error('Error fetching user data:', error);
                 }
@@ -48,10 +61,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await signInWithEmailAndPassword(auth, email, password);
     };
 
+    const loginWithGoogle = async () => {
+        const provider = new GoogleAuthProvider();
+        provider.addScope('email');
+        provider.addScope('profile');
+        await signInWithPopup(auth, provider);
+    };
+
     const register = async (email: string, password: string, displayName: string) => {
         const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
 
-        const userData: Omit<User, 'id'> = {
+        const userData: User = {
             uid: firebaseUser.uid,
             email: firebaseUser.email || '',
             displayName,
@@ -70,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         loading,
         login,
+        loginWithGoogle,
         register,
         logout
     };
